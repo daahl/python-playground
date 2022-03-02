@@ -14,6 +14,7 @@ car_door, car_1 # Are good ways to name a variable.
 .lower(), .upper(), .title() # Last one converts to Camel Case
 .strip(), .lstrip(), .rstrip() # Removes trailing whitespaces
 f"{variable_name}, hello there!" # Creates an f-string
+tree_id = tree_label[2:4] # Sets tree_id to the 2nd and 3rd values of tree_label
 
 # NUMBERS
 # Operations with floats yeilds another float

@@ -29,9 +29,9 @@ class tree:
         # Required: Each tree has a unique label and id.
         # Plot id reoccurs between sites.
         # Three different sites, with 18 different plots, and 100 trees ("positions") in each plot.
-        # Site id is S, R, or M
-        # Plot id is K-M, 1-3.
-        # Pos id is A-J, 1-10.
+        # Site id is S, R, or M, one letter.
+        # Plot id is K-M and 1-3, one letter and one number.
+        # Pos id is A-J and 1-10, one letter and one number.
         # Assume that new trees are alive on init.
         # Assume 8 neighbours, even for corner and edge positions.
         self.label = label
@@ -84,7 +84,7 @@ while True:
     #   K2 L2 M2
     #   K3 L3 M3
     # Positions:
-    #   A1 B1 C1 ... J1
+    #   A01 B01 C01 ... J01
     #   ...
     #   A10 B10 C10 ... J10
     # Neighbours in plots are looked at clockwise, starting with the top left one
@@ -100,11 +100,50 @@ while True:
     neighbours_id = [None] * 8
     plot_chars = ["K", "L", "M"]
     pos_chars = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
-    # General case, all neighbours exists.
-    # TODO: ides now is to look for edge cases using the char arrays
+
+    # Extract plot and pos id from the current tree
+    this_plot = [trees[tree_hash].plot[0], int(trees[tree_hash].plot[1])]
+    this_pos = [trees[tree_hash].pos[0], int(trees[tree_hash].pos[1:])]
+
+    # Get the char index in the char lists
+    this_plot_idx = plot_chars.index(this_plot[0])
+    this_pos_idx = pos_chars.index(this_pos[0])
+
+    # Calculate the neighbouring plots and positions
+    # Corner positions are handled by left and right edges
+    # as such the top and bottom edge are more like "middle" edge
+    if this_pos_idx == 0 and this_plot_idx == 0:
+        # This tree is on the left edge => no left neighbours
+        pass
+    else:
+        pass
+
+    if this_pos[1] == 1 and this_plot[1] == 1:
+        # This tree is on the top edge => no above neighbours
+        pass
+    else:
+        pass
+
+    if this_pos_idx == 9 and this_plot_idx == 2:
+        # This tree is on the right edge => no right neighbours
+        pass
+    else:
+        pass
+
+    if this_pos[1] == 10 and this_plot[1] == 3:
+        # This tree is one the bottom edge => no below neighbours
+        pass
+    else:
+        pass
+
+    print(f"{this_plot} {this_plot_idx} {this_pos} {this_pos_idx}")
+
+
+
+    # TODO: The idea now is to look for edge cases using the char arrays
     #       and to compute the neighbour ids from the current tree plot and pos id
     #       after that use the neighbour array to add this tree to the neighbouring trees self.neigbours
     #       and the neighbour trees to this trees neighbour array.
     
-    print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
+    print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
     row_index += ROWSKIP

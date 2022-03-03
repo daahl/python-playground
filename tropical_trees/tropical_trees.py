@@ -110,7 +110,7 @@ while True:
     this_pos_idx = pos_chars.index(this_pos[0])
 
     # Calculate the neighbouring plots and positions
-    # Corner positions are handled by left and right edges
+    # TODO: Corner positions are handled by left and right edges
     # as such the top and bottom edge are more like "middle" edge
     if this_pos_idx == 0 and this_plot_idx == 0:
         # This tree is on the left edge => no left neighbours

@@ -109,34 +109,40 @@ while True:
     this_plot_idx = plot_chars.index(this_plot[0])
     this_pos_idx = pos_chars.index(this_pos[0])
 
-    # Calculate the neighbouring plots and positions
+    ### Calculate the neighbouring plots and positions ###
+    # Below are four edge cases, where there are no neighbours
     # TODO: Corner positions are handled by left and right edges
     # as such the top and bottom edge are more like "middle" edge
+    no_left = no_above = no_right = no_below = False
     if this_pos_idx == 0 and this_plot_idx == 0:
         # This tree is on the left edge => no left neighbours
-        pass
-    else:
-        pass
+        no_left = True
 
     if this_pos[1] == 1 and this_plot[1] == 1:
         # This tree is on the top edge => no above neighbours
-        pass
-    else:
-        pass
+        no_above = True
 
     if this_pos_idx == 9 and this_plot_idx == 2:
         # This tree is on the right edge => no right neighbours
-        pass
-    else:
-        pass
+        no_right = True
 
     if this_pos[1] == 10 and this_plot[1] == 3:
         # This tree is one the bottom edge => no below neighbours
-        pass
-    else:
-        pass
+        no_below = True
+    
+    # test comments
+    # this:     K1 D3
+    # neigh:    K1 C3
+    if not no_left:
+        mid_left_neigh_pos = [pos_chars[this_pos_idx - 1], this_pos[1]]
+        # Neighbour is in an adjacent plot
+        if pos_chars.index(mid_left_neigh_pos[0]) > this_pos_idx:
+           mid_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot_idx]
+        else:
+            mid_left_neigh_plot = this_plot
 
     print(f"{this_plot} {this_plot_idx} {this_pos} {this_pos_idx}")
+    print(f"{mid_left_neigh_plot} {mid_left_neigh_pos}")
 
 
 
@@ -147,3 +153,4 @@ while True:
     
     print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
     row_index += ROWSKIP
+    break

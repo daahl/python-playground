@@ -104,6 +104,9 @@ while True:
     # Extract plot and pos id from the current tree
     this_plot = [trees[tree_hash].plot[0], int(trees[tree_hash].plot[1])]
     this_pos = [trees[tree_hash].pos[0], int(trees[tree_hash].pos[1:])]
+    # dummy data
+    this_plot = ["M", 3]
+    this_pos = ["J", 10]
 
     # Get the char index in the char lists
     this_plot_idx = plot_chars.index(this_plot[0])
@@ -112,37 +115,55 @@ while True:
     ### Calculate the neighbouring plots and positions ###
     # Below are four edge cases, where there are no neighbours
     # TODO: Corner positions are handled by left and right edges
-    # as such the top and bottom edge are more like "middle" edge
+    #       as such the top and bottom edge are more like "middle" edge
     no_left = no_above = no_right = no_below = False
-    if this_pos_idx == 0 and this_plot_idx == 0:
+    if this_plot_idx == 0 and this_pos_idx == 0:
         # This tree is on the left edge => no left neighbours
         no_left = True
 
-    if this_pos[1] == 1 and this_plot[1] == 1:
+    if this_plot[1] == 1 and this_pos[1] == 1:
         # This tree is on the top edge => no above neighbours
         no_above = True
 
-    if this_pos_idx == 9 and this_plot_idx == 2:
+    if this_plot_idx == 2 and  this_pos_idx == 9:
         # This tree is on the right edge => no right neighbours
         no_right = True
 
-    if this_pos[1] == 10 and this_plot[1] == 3:
+    if this_plot[1] == 3 and this_pos[1] == 10:
         # This tree is one the bottom edge => no below neighbours
         no_below = True
     
-    # test comments
-    # this:     K1 D3
-    # neigh:    K1 C3
+
     if not no_left:
         mid_left_neigh_pos = [pos_chars[this_pos_idx - 1], this_pos[1]]
-        # Neighbour is in an adjacent plot
-        if pos_chars.index(mid_left_neigh_pos[0]) > this_pos_idx:
-           mid_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot_idx]
+        # Left neighbour is in a plot to the left
+        if this_pos[0] == "A":
+           mid_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1]]
         else:
             mid_left_neigh_plot = this_plot
 
-    print(f"{this_plot} {this_plot_idx} {this_pos} {this_pos_idx}")
-    print(f"{mid_left_neigh_plot} {mid_left_neigh_pos}")
+    if not no_above:
+        # Above neighbour is in a plot above 
+        if this_pos[1] == 1:
+            mid_above_neigh_pos = [this_pos[0], 10]
+            mid_above_neigh_plot = [this_plot[0], this_plot[1] - 1]
+        else:
+            mid_above_neigh_pos = [this_pos[0], this_pos[1] - 1]
+            mid_above_neigh_plot = this_plot
+
+    if not no_right:
+        # Right neighbour is in plot to the right
+        if this_pos_idx == 9:
+            mid_right_neigh_pos = ["A", this_pos[1]]
+            mid_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1]]
+        else:
+            mid_right_neigh_pos = [pos_chars[this_pos_idx + 1], this_pos[1]]
+            mid_right_neigh_plot = this_plot
+            
+
+    print(f"{no_left} {no_above} {no_right} {no_below}")
+    print(f"this:       {this_plot} {this_pos}")
+    print(f"neigh left: {mid_right_neigh_plot} {mid_right_neigh_pos}")
 
 
 

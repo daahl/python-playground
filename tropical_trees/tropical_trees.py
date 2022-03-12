@@ -96,8 +96,8 @@ while True:
     # Case: Individual in corner => only 3 neighbours
     # Neighbours exits between plots, but not between sites.
 
-    neighbours = [None] * 8
-    neighbours_id = [None] * 8
+    neighbours_plot = [None] * 8
+    neighbours_pos= [None] * 8
     plot_chars = ["K", "L", "M"]
     pos_chars = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
@@ -106,7 +106,7 @@ while True:
     this_pos = [trees[tree_hash].pos[0], int(trees[tree_hash].pos[1:])]
     # dummy data
     this_plot = ["L", 2]
-    this_pos = ["C", 5]
+    this_pos = ["A", 10]
 
     # Get the char index in the char lists
     this_plot_idx = plot_chars.index(this_plot[0])
@@ -125,7 +125,7 @@ while True:
         # This tree is on the top edge => no above neighbours
         no_above = True
 
-    if this_plot[1] == "M" and  this_pos[1] == "J":
+    if this_plot[0] == "M" and this_pos[0] == "J":
         # This tree is on the right edge => no right neighbours
         no_right = True
 
@@ -140,32 +140,43 @@ while True:
             mid_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1]]
         else:
             mid_left_neigh_plot = this_plot
+        
+        neighbours_plot[3] = mid_left_neigh_plot
+        neighbours_pos[3] = mid_left_neigh_pos
+        
+        if not no_above:    
+            if this_pos[0] == "A" and this_pos[1] == 1:
+                top_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1] - 1]
+                top_left_neigh_pos = ["J", 10]
+            elif this_pos[0] == "A":
+                top_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1]]
+                top_left_neigh_pos = ["J", this_pos[1] - 1]
+            elif this_pos[1] == 1:
+                top_left_neigh_plot = [this_plot[0], this_plot[1] - 1]
+                top_left_neigh_pos = [pos_chars[this_pos_idx - 1], 10]
+            else:
+                top_left_neigh_plot = this_plot
+                top_left_neigh_pos = [pos_chars[this_pos_idx - 1], this_pos[1] - 1]
             
-        if this_pos[0] == "A" and this_pos[1] == 1:
-            top_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1] - 1]
-            top_left_neigh_pos = ["J", 10]
-        elif this_pos[0] == "A":
-            top_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1]]
-            top_left_neigh_pos = ["J", this_pos[1] - 1]
-        elif this_pos[1] == 1:
-            top_left_neigh_plot = [this_plot[0], this_plot[1] - 1]
-            top_left_neigh_pos = [pos_chars[this_pos_idx - 1], 10]
-        else:
-            top_left_neigh_plot = this_plot
-            top_left_neigh_pos = [pos_chars[this_pos_idx - 1], this_pos[1] - 1]
+            neighbours_plot[0] = top_left_neigh_plot
+            neighbours_pos[0] = top_left_neigh_pos
             
-        if this_pos[0] == "A" and this_pos[1] == 10:
-            bot_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1] + 1]
-            bot_left_neigh_pos = ["J", 1]
-        elif this_pos[0] == "A":
-            bot_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1]]
-            bot_left_neigh_pos = ["J", this_pos[1] + 1]
-        elif this_pos[1] == 10:
-            bot_left_neigh_plot = [this_plot[0], this_plot[1] + 1]
-            bot_left_neigh_pos = [pos_chars[this_pos_idx - 1], 1]
-        else:
-            bot_left_neigh_plot = this_plot
-            bot_left_neigh_pos = [pos_chars[this_pos_idx - 1], this_pos[1] + 1]
+        if not no_below:
+            if this_pos[0] == "A" and this_pos[1] == 10:
+                bot_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1] + 1]
+                bot_left_neigh_pos = ["J", 1]
+            elif this_pos[0] == "A":
+                bot_left_neigh_plot = [plot_chars[this_plot_idx - 1], this_plot[1]]
+                bot_left_neigh_pos = ["J", this_pos[1] + 1]
+            elif this_pos[1] == 10:
+                bot_left_neigh_plot = [this_plot[0], this_plot[1] + 1]
+                bot_left_neigh_pos = [pos_chars[this_pos_idx - 1], 1]
+            else:
+                bot_left_neigh_plot = this_plot
+                bot_left_neigh_pos = [pos_chars[this_pos_idx - 1], this_pos[1] + 1]
+            
+            neighbours_plot[5] = bot_left_neigh_plot
+            neighbours_pos[5] = bot_left_neigh_pos
         
     if not no_above:
         # Above neighbour is in a plot above 
@@ -175,41 +186,56 @@ while True:
         else:
             mid_above_neigh_pos = [this_pos[0], this_pos[1] - 1]
             mid_above_neigh_plot = this_plot
+            
+        neighbours_plot[1] = mid_above_neigh_plot
+        neighbours_pos[1] =  mid_above_neigh_pos
   
     if not no_right:
         # Right middle neighbour is in plot to the right
-        if this_pos_idx == 9:
+        if this_pos[0] == "J":
             mid_right_neigh_pos = ["A", this_pos[1]]
             mid_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1]]
         else:
             mid_right_neigh_pos = [pos_chars[this_pos_idx + 1], this_pos[1]]
             mid_right_neigh_plot = this_plot
+        
+        neighbours_plot[4] = mid_right_neigh_plot
+        neighbours_pos[4] = mid_right_neigh_pos
 
-        if this_pos[0] == "J" and this_pos[1] == 1:
-            top_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1] - 1]
-            top_right_neigh_pos = ["A", 10]
-        elif this_pos[0] == "J":
-            top_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1]]
-            top_right_neigh_pos = ["A", this_pos[1] - 1]
-        elif this_pos[1] == 1:
-            top_right_neigh_plot = [this_plot[0], this_plot[1] - 1]
-            top_right_neigh_pos = [pos_chars[this_pos_idx + 1], 10]
-        else:
-            top_right_neigh_plot = this_plot
-            top_right_neigh_pos = [pos_chars[this_pos_idx + 1], this_pos[1] - 1]
+        if not no_above:
+            if this_pos[0] == "J" and this_pos[1] == 1:
+                top_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1] - 1]
+                top_right_neigh_pos = ["A", 10]
+            elif this_pos[0] == "J":
+                top_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1]]
+                top_right_neigh_pos = ["A", this_pos[1] - 1]
+            elif this_pos[1] == 1:
+                top_right_neigh_plot = [this_plot[0], this_plot[1] - 1]
+                top_right_neigh_pos = [pos_chars[this_pos_idx + 1], 10]
+            else:
+                top_right_neigh_plot = this_plot
+                top_right_neigh_pos = [pos_chars[this_pos_idx + 1], this_pos[1] - 1]
+                
+            neighbours_plot[2] = top_right_neigh_plot
+            neighbours_pos[2] = top_right_neigh_pos
             
-        if this_pos[0] == "J" and this_pos[1] == 10:
-            bot_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1] + 1]
-            bot_right_neigh_pos = ["A", 1]
-        elif this_pos[0] == "J":
-            bot_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1]]
-            bot_right_neigh_pos = ["A", this_pos[1] + 1]
-        elif this_pos[1] == 10:
-            bot_right_neigh_plot = [this_plot[0], this_plot[1] + 1]
-            bot_right_neigh_pos = [pos_chars[this_pos_idx + 1], 1]
-        else:
-            bot_right_neigh_plot = this_plot
-            bot_right_neigh_pos = [pos_chars[this_pos_idx + 1], this_pos[1] + 1]
+        if not no_below:
+            if this_pos[0] == "J" and this_pos[1] == 10:
+                bot_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1] + 1]
+                bot_right_neigh_pos = ["A", 1]
+            elif this_pos[0] == "J":
+                bot_right_neigh_plot = [plot_chars[this_plot_idx + 1], this_plot[1]]
+                bot_right_neigh_pos = ["A", this_pos[1] + 1]
+            elif this_pos[1] == 10:
+                bot_right_neigh_plot = [this_plot[0], this_plot[1] + 1]
+                bot_right_neigh_pos = [pos_chars[this_pos_idx + 1], 1]
+            else:
+                bot_right_neigh_plot = this_plot
+                bot_right_neigh_pos = [pos_chars[this_pos_idx + 1], this_pos[1] + 1]
+                
+            neighbours_plot[7] = bot_right_neigh_plot
+            neighbours_pos[7] = bot_right_neigh_pos
+        
             
     if not no_below:
         # Below neighbour is in a plot below
@@ -219,11 +245,15 @@ while True:
         else:
             mid_below_neigh_pos = [this_pos[0], this_pos[1] + 1]
             mid_below_neigh_plot = this_plot
+        
+        neighbours_plot[6] = mid_below_neigh_plot
+        neighbours_pos[6] = mid_below_neigh_pos
             
 
     print(f"{no_left} {no_above} {no_right} {no_below}")
     print(f"this:       {this_plot} {this_pos}")
-    print(f"neigh left: {bot_right_neigh_plot} {bot_right_neigh_pos}")
+    print(f"neigh plot: {neighbours_plot}")
+    print(f"neigh pos: {neighbours_pos}")
 
 
 

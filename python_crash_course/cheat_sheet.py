@@ -56,6 +56,8 @@ my_1 = (1,) # Note the comma! Generates a tuple with the item 1
 # LOOPS
 for X in Xs: 	# A for loop that itirates a list, Xs, where X is each item
 	print X
+for x, y in zip(listA, listB): # Iterates the lists pairwise
+    print(x, y)
 
 squares = [value**2 for value in range(1,11)] # Creates a list of 1^2 to 10^2
 

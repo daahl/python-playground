@@ -9,6 +9,8 @@
 #   By Marcus Dahlström 2022
 #
 
+from cProfile import label
+from itertools import pairwise
 import openpyxl as op
 
 ###### Script config ######
@@ -29,20 +31,27 @@ class tree:
         # Required: Each tree has a unique label and id.
         # Plot id reoccurs between sites.
         # Three different sites, with 18 different plots, and 100 trees ("positions") in each plot.
-        # Site id is S, R, or M, one letter.
+        # Site id is S, R, or M, one letter and one number.
         # Plot id is K-M and 1-3, one letter and one number.
         # Pos id is A-J and 1-10, one letter and one number.
         # Assume that new trees are alive on init.
         # Assume 8 neighbours, even for corner and edge positions.
         self.label = label
         self.id = label[0:7]
-        self.site = label[0]
+        self.site = label[0:2]
         self.plot = label[2:4]
         self.pos = label[4:7]
         self.species = label[8:]
         self.height = None
         self.dead = 0
         self.neighbours = [None] * 8
+    
+    def update(self, label) -> None:
+        self.id = label[0:7]
+        self.site = label[0]
+        self.plot = label[2:4]
+        self.pos = label[4:7]
+        self.species = label[8:]
 
 
 ###### Main script ######
@@ -54,15 +63,21 @@ trees = {} # Dict to keep track of all the trees that have been extracted
 while True:
     # Start parsing the label into site, plot, and species
     tree_label = sheet.cell(row=row_index, column=LABELCOL).value
+    print(tree_label)
     # No more rows with data, stop extraction.
     if tree_label == None:
         break
 
     # Add new trees to the dict
+    # or update already existing (created from earlier trees as neighbours)
+    # Only the plot and position of the tree are hashed
+    # as these are then used for neighbour lookup. Species can't be "calculated".
     current_tree = tree(tree_label)
-    tree_hash = hash(current_tree)
+    tree_hash = hash(current_tree.label[0:7])
     if tree_hash not in trees:
         trees[tree_hash] = current_tree
+    else:
+        trees[tree_hash].update(tree_label)
 
     # Check the death status from the last measurement before the next individual
     # because some trees recover from death.
@@ -235,7 +250,6 @@ while True:
                 
             neighbours_plot[7] = bot_right_neigh_plot
             neighbours_pos[7] = bot_right_neigh_pos
-        
             
     if not no_below:
         # Below neighbour is in a plot below
@@ -249,19 +263,42 @@ while True:
         neighbours_plot[6] = mid_below_neigh_plot
         neighbours_pos[6] = mid_below_neigh_pos
             
-
+    # test comments
     print(f"{no_left} {no_above} {no_right} {no_below}")
     print(f"this:       {this_plot} {this_pos}")
     print(f"neigh plot: {neighbours_plot}")
     print(f"neigh pos: {neighbours_pos}")
 
-
-
-    # TODO: The idea now is to look for edge cases using the char arrays
-    #       and to compute the neighbour ids from the current tree plot and pos id
-    #       after that use the neighbour array to add this tree to the neighbouring trees self.neigbours
-    #       and the neighbour trees to this trees neighbour array.
+    # Build the neightbours ids.
+    # Site is always the same as the current tree.
+    neighbours_id = [None] * 8
+    for i in range(0, 8):
+        neighbours_id[i] = (current_tree.site + str(neighbours_plot[i][0]) + str(neighbours_plot[i][1]) +
+                                str(neighbours_pos[i][0]) + str(neighbours_pos[i][1]).rjust(2, "0"))
+    
+    # Update neighbours lists of this tree and neighbouring trees
+    for i in range(0,8):
+        neigh_id = neighbours_id[i]
+        if neigh_id == None:
+            continue
+        
+        neigh_hash = hash(neigh_id)
+        # Create new trees from neighbours if they don't exists
+        if not neigh_hash in trees:
+            trees[neigh_hash] = tree(neigh_id)
+            
+        # Add the current tree as neighbour to neighbouring trees neighbours lists
+        trees[neigh_hash].neighbours[i] = current_tree.id
+        
+        # Add the neighbours to the current tree neighbours list
+        if trees[tree_hash].neighbours[i] == None:
+            trees[tree_hash].neighbours[i] = neigh_id
+        
     
     print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
     row_index += ROWSKIP
-    break
+
+for k, v in trees.items():
+    print(v.label)
+    print(v.neighbours)
+    print("")

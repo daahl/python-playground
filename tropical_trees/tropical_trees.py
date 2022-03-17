@@ -17,12 +17,22 @@ import openpyxl as op
 STARTINGROW = 5        # Which row to start reading from
 SHEETNAME = 'Sheet1'   # Which sheet to read data from
 ROWSKIP = 12           # How many rows to skip, as each tree has several measurements
-LABELCOL = 15           # Column 'O', Label
-HEIGHTCOL = 27          # Column 'AA', Hfill
-DEADCOL = 42            # Column 'AP', Dead. Coincidence that his column is the answer to everything?
+LABELCOL = 15          # Column 'O', Label
+HEIGHTCOL = 27         # Column 'AA', Hfill
+DEADCOL = 42           # Column 'AP', Dead. Coincidence that his column is the answer to everything?
 
-datawb = op.load_workbook(filename="C:\\Users\\Marcus\\Documents\\code\\data.xlsx", read_only=True)
-outputwb = None
+INPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\data.xlsx"     # Input file path
+OUTPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\output.xlsx"  # Output file path
+PROGRESSMOD = 1000      # After how many trees should a progress update be printed?
+
+# Column formatting for the output file
+OUTSTARTROW = 1         # Starting row
+OUTLABELCOL = 1         # Label
+OUTSPECIESCOL = 2       # Species
+OUTDEADCOL = 3          # Dead status
+OUTHEIGHTCOL = 4        # Height
+OUTNAVGHEIGHTCOL = 5    # Average neighbouring height
+OUTNEIGHTSTARTCOL = 6   # Start of neighbours
 
 
 ###### Tree object ######
@@ -43,7 +53,7 @@ class tree:
         self.pos = label[4:7]
         self.species = label[8:]
         self.height = None
-        self.dead = 0
+        self.dead = None
         self.neighbours = [None] * 8
     
     def update(self, label) -> None:
@@ -55,15 +65,18 @@ class tree:
 
 
 ###### Main script ######
+datawb = op.load_workbook(filename=INPUTFILEPATH, read_only=True)
 sheet = datawb[SHEETNAME]
 row_index = STARTINGROW
 trees = {} # Dict to keep track of all the trees that have been extracted
+nrOfTrees = 0 # To keep track of the progress
 
 # Iterate the individual trees and extract the data until no data rows remain
 while True:
     # Start parsing the label into site, plot, and species
     tree_label = sheet.cell(row=row_index, column=LABELCOL).value
-    print(tree_label)
+    # dummy data
+    tree_label = "S1K1J10_test"
     # No more rows with data, stop extraction.
     if tree_label == None:
         break
@@ -71,7 +84,7 @@ while True:
     # Add new trees to the dict
     # or update already existing (created from earlier trees as neighbours)
     # Only the plot and position of the tree are hashed
-    # as these are then used for neighbour lookup. Species can't be "calculated".
+    # as these are then used for neighbour lookup. Species can't be "calculated" in advanced.
     current_tree = tree(tree_label)
     tree_hash = hash(current_tree.label[0:7])
     if tree_hash not in trees:
@@ -119,9 +132,6 @@ while True:
     # Extract plot and pos id from the current tree
     this_plot = [trees[tree_hash].plot[0], int(trees[tree_hash].plot[1])]
     this_pos = [trees[tree_hash].pos[0], int(trees[tree_hash].pos[1:])]
-    # dummy data
-    this_plot = ["L", 2]
-    this_pos = ["A", 10]
 
     # Get the char index in the char lists
     this_plot_idx = plot_chars.index(this_plot[0])
@@ -264,16 +274,17 @@ while True:
         neighbours_pos[6] = mid_below_neigh_pos
             
     # test comments
-    print(f"{no_left} {no_above} {no_right} {no_below}")
-    print(f"this:       {this_plot} {this_pos}")
-    print(f"neigh plot: {neighbours_plot}")
-    print(f"neigh pos: {neighbours_pos}")
+    #print(f"{no_left} {no_above} {no_right} {no_below}")
+    #print(f"this:       {this_plot} {this_pos}")
+    #print(f"neigh plot: {neighbours_plot}")
+    #print(f"neigh pos: {neighbours_pos}")
 
     # Build the neightbours ids.
     # Site is always the same as the current tree.
     neighbours_id = [None] * 8
     for i in range(0, 8):
-        neighbours_id[i] = (current_tree.site + str(neighbours_plot[i][0]) + str(neighbours_plot[i][1]) +
+        if not neighbours_plot[i] == None:
+            neighbours_id[i] = (current_tree.site + str(neighbours_plot[i][0]) + str(neighbours_plot[i][1]) +
                                 str(neighbours_pos[i][0]) + str(neighbours_pos[i][1]).rjust(2, "0"))
     
     # Update neighbours lists of this tree and neighbouring trees
@@ -295,10 +306,52 @@ while True:
             trees[tree_hash].neighbours[i] = neigh_id
         
     
-    print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
+    #print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
     row_index += ROWSKIP
+    
+    # Progress update
+    nrOfTrees += 1
+    if nrOfTrees%PROGRESSMOD == 0:
+        print(f"{nrOfTrees} trees extracted...")
+    
+    break
+    
 
+## Save the calculated data into a new spreadsheet
+outputwb = op.Workbook()
+wb = outputwb.active
+wb.title = "Tree neighbours"
+
+# Format the column labels
+wb.cell(row=OUTSTARTROW, column=OUTLABELCOL, value="Label")
+wb.cell(row=OUTSTARTROW, column=OUTSPECIESCOL, value="Species")
+wb.cell(row=OUTSTARTROW, column=OUTDEADCOL, value="Dead")
+wb.cell(row=OUTSTARTROW, column=OUTHEIGHTCOL, value="Height")
+wb.cell(row=OUTSTARTROW, column=OUTNAVGHEIGHTCOL, value="NeighAvgHeight")
+neighbour_order = ["TopLeft", "TopCent", "TopRight",
+                   "MidLeft", "MidRight",
+                   "BotLeft", "BotCent", "BotRight"]
+for i in range(0,8):
+    wb.cell(row=OUTSTARTROW, column=OUTNEIGHTSTARTCOL + i, value=neighbour_order[i])
+    
+
+r = 1
 for k, v in trees.items():
-    print(v.label)
-    print(v.neighbours)
-    print("")
+    wb.cell(row=OUTSTARTROW + r, column=OUTLABELCOL, value=v.label)
+    wb.cell(row=OUTSTARTROW + r, column=OUTSPECIESCOL, value=v.species)
+    wb.cell(row=OUTSTARTROW + r, column=OUTDEADCOL, value=v.dead)
+    wb.cell(row=OUTSTARTROW + r, column=OUTHEIGHTCOL, value=v.height)
+    wb.cell(row=OUTSTARTROW + r, column=OUTNAVGHEIGHTCOL, value="TODO")
+    
+    # Add neighbours heights to their right columns
+    nc = 0
+    for n in v.neighbours:
+        wb.cell(row=OUTSTARTROW + r, column=OUTNEIGHTSTARTCOL + nc, value=n)
+        nc += 1
+    
+    r += 1
+
+
+outputwb.save(filename=OUTPUTFILEPATH)
+
+print(f"Done. Total of {nrOfTrees} trees were extracted. Phew..!")

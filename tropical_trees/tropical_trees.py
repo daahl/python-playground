@@ -12,18 +12,19 @@
 from cProfile import label
 from itertools import pairwise
 import openpyxl as op
+import time as t
 
 ###### Script config ######
 STARTINGROW = 5        # Which row to start reading from
-SHEETNAME = 'Sheet1'   # Which sheet to read data from
-ROWSKIP = 12           # How many rows to skip, as each tree has several measurements
+SHEETNAME = 'Database' # Which sheet to read data from
+SAMPSPERTREE = 12      # How many samples are taken for each tree
 LABELCOL = 15          # Column 'O', Label
 HEIGHTCOL = 27         # Column 'AA', Hfill
 DEADCOL = 42           # Column 'AP', Dead. Coincidence that his column is the answer to everything?
 
-INPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\data.xlsx"     # Input file path
+INPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\treedata.xlsm"     # Input file path
 OUTPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\output.xlsx"  # Output file path
-PROGRESSMOD = 1000      # After how many trees should a progress update be printed?
+PROGRESSMOD = 50      # After how many trees should a progress update be printed?
 
 # Column formatting for the output file
 OUTSTARTROW = 1         # Starting row
@@ -67,44 +68,55 @@ class tree:
 ###### Main script ######
 datawb = op.load_workbook(filename=INPUTFILEPATH, read_only=True)
 sheet = datawb[SHEETNAME]
-row_index = STARTINGROW
 trees = {} # Dict to keep track of all the trees that have been extracted
-nrOfTrees = 0 # To keep track of the progress
+nr_of_rows = 0 # To keep track of the progress
+last_label = None # To keep track of which tree is worked on
+tree_is_dead = 0
+header_row = 0
+last_height = 0
 
+# Using sheet.cell takes exponentially longer for high row/cell ids
+# Counts the number or rows, for the main loop to know the max index.
+#sheet_row_count = 0
+#for r in sheet.rows:
+#    sheet_row_count += 1
+#print(f"{sheet_row_count} number of rows.")
+    
 # Iterate the individual trees and extract the data until no data rows remain
-while True:
+for row in sheet.rows:
+    # Skip the first 5 rows, as they are just headers
+    if header_row < STARTINGROW:
+        header_row += 1
+        continue
+    
     # Start parsing the label into site, plot, and species
-    tree_label = sheet.cell(row=row_index, column=LABELCOL).value
-    # dummy data
-    tree_label = "S1K1J10_test"
-    # No more rows with data, stop extraction.
-    if tree_label == None:
-        break
-
+    tree_label = row[LABELCOL - 1].value
+    if tree_label != last_label: # We're on a new tree.
+        last_label = tree_label
+        last_height = 0
+    
     # Add new trees to the dict
     # or update already existing (created from earlier trees as neighbours)
     # Only the plot and position of the tree are hashed
     # as these are then used for neighbour lookup. Species can't be "calculated" in advanced.
     current_tree = tree(tree_label)
     tree_hash = hash(current_tree.label[0:7])
-    if tree_hash not in trees:
+    if tree_hash not in trees.keys():
         trees[tree_hash] = current_tree
     else:
         trees[tree_hash].update(tree_label)
-
+        
+    # TODO the height needs to be checked on each row and updated
+    # Check the height
+    if row[HEIGHTCOL - 1].value:
+        if row[HEIGHTCOL -1].value > last_height:
+            last_height = row[HEIGHTCOL - 1].value
+            trees[tree_hash].height = last_height
+    
     # Check the death status from the last measurement before the next individual
     # because some trees recover from death.
-    if sheet.cell(row=row_index+11, column=DEADCOL).value:
+    if row[DEADCOL - 1].value:
         trees[tree_hash].dead = 1
-
-    # Check the latest height measurement.
-    # If the tree is dead check the search has to go back up the rows
-    # until a measurement is found.
-    height_row = 11
-    trees[tree_hash].height = sheet.cell(row=row_index+height_row, column=HEIGHTCOL).value
-    while trees[tree_hash].height == None:
-        height_row = height_row - 1
-        trees[tree_hash].height = sheet.cell(row=row_index+height_row, column=HEIGHTCOL).value
     
     # Add this tree to trees that are its neighbour.
     # Plots:
@@ -123,7 +135,6 @@ while True:
     # Case: Individual at edge => 5 neighbours
     # Case: Individual in corner => only 3 neighbours
     # Neighbours exits between plots, but not between sites.
-
     neighbours_plot = [None] * 8
     neighbours_pos= [None] * 8
     plot_chars = ["K", "L", "M"]
@@ -278,7 +289,7 @@ while True:
     #print(f"this:       {this_plot} {this_pos}")
     #print(f"neigh plot: {neighbours_plot}")
     #print(f"neigh pos: {neighbours_pos}")
-
+    
     # Build the neightbours ids.
     # Site is always the same as the current tree.
     neighbours_id = [None] * 8
@@ -295,7 +306,7 @@ while True:
         
         neigh_hash = hash(neigh_id)
         # Create new trees from neighbours if they don't exists
-        if not neigh_hash in trees:
+        if not neigh_hash in trees.keys():
             trees[neigh_hash] = tree(neigh_id)
             
         # Add the current tree as neighbour to neighbouring trees neighbours lists
@@ -307,15 +318,16 @@ while True:
         
     
     #print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
-    row_index += ROWSKIP
-    
     # Progress update
-    nrOfTrees += 1
-    if nrOfTrees%PROGRESSMOD == 0:
-        print(f"{nrOfTrees} trees extracted...")
+    # TODO change this to nr of rows and then divide by 12 for nr of trees
+    nr_of_rows += 1
+    if nr_of_rows%PROGRESSMOD == 0:
+        print(f"{nr_of_rows / SAMPSPERTREE} trees extracted...")
     
-    break
     
+    
+# Close the data workbook
+datawb.close()
 
 ## Save the calculated data into a new spreadsheet
 outputwb = op.Workbook()
@@ -350,8 +362,11 @@ for k, v in trees.items():
         nc += 1
     
     r += 1
+    # Progress update
+    if r%PROGRESSMOD == 0:
+        print(f"{r} trees saved...")
 
 
 outputwb.save(filename=OUTPUTFILEPATH)
 
-print(f"Done. Total of {nrOfTrees} trees were extracted. Phew..!")
+print(f"Done. Total of {nr_of_rows / SAMPSPERTREE} trees were extracted. Phew..!")

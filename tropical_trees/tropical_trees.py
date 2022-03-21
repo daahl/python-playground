@@ -42,11 +42,13 @@ class tree:
         # Required: Each tree has a unique label and id.
         # Plot id reoccurs between sites.
         # Three different sites, with 18 different plots, and 100 trees ("positions") in each plot.
-        # Site id is S, R, or M, one letter and one number.
+        # First character determines site, S, R, M.
+        # Second character does not matter.
         # Plot id is K-M and 1-3, one letter and one number.
         # Pos id is A-J and 1-10, one letter and one number.
         # Assume that new trees are alive on init.
         # Assume 8 neighbours, even for corner and edge positions.
+        # A unique ID looks like: SxK2D03_xxx
         self.label = label
         self.id = label[0:7]
         self.site = label[0:2]
@@ -58,29 +60,23 @@ class tree:
         self.neighbours = [None] * 8
     
     def update(self, label) -> None:
+        self.label = label
         self.id = label[0:7]
-        self.site = label[0]
+        self.site = label[0:2]
         self.plot = label[2:4]
         self.pos = label[4:7]
         self.species = label[8:]
 
 
 ###### Main script ######
-datawb = op.load_workbook(filename=INPUTFILEPATH, read_only=True)
+datawb = op.load_workbook(filename=INPUTFILEPATH, read_only=True, data_only=True)
 sheet = datawb[SHEETNAME]
 trees = {} # Dict to keep track of all the trees that have been extracted
 nr_of_rows = 0 # To keep track of the progress
 last_label = None # To keep track of which tree is worked on
 tree_is_dead = 0
 header_row = 0
-last_height = 0
-
-# Using sheet.cell takes exponentially longer for high row/cell ids
-# Counts the number or rows, for the main loop to know the max index.
-#sheet_row_count = 0
-#for r in sheet.rows:
-#    sheet_row_count += 1
-#print(f"{sheet_row_count} number of rows.")
+last_height = 0.0
     
 # Iterate the individual trees and extract the data until no data rows remain
 for row in sheet.rows:
@@ -99,16 +95,16 @@ for row in sheet.rows:
     # or update already existing (created from earlier trees as neighbours)
     # Only the plot and position of the tree are hashed
     # as these are then used for neighbour lookup. Species can't be "calculated" in advanced.
+    # TODO: Don't hash the 2nd character, as that one can't be calculated later
     current_tree = tree(tree_label)
-    tree_hash = hash(current_tree.label[0:7])
+    tree_hash = hash(current_tree.label[0] + current_tree.label[2:7])
     if tree_hash not in trees.keys():
         trees[tree_hash] = current_tree
     else:
         trees[tree_hash].update(tree_label)
         
-    # TODO the height needs to be checked on each row and updated
     # Check the height
-    if row[HEIGHTCOL - 1].value:
+    if isinstance(row[HEIGHTCOL - 1].value, int) or isinstance(row[HEIGHTCOL - 1].value, float):
         if row[HEIGHTCOL -1].value > last_height:
             last_height = row[HEIGHTCOL - 1].value
             trees[tree_hash].height = last_height
@@ -123,6 +119,9 @@ for row in sheet.rows:
     #   K1 L1 M1
     #   K2 L2 M2
     #   K3 L3 M3
+    #   K4 L4 M4
+    #   K5 L5 M5
+    #   K6 L6 M6
     # Positions:
     #   A01 B01 C01 ... J01
     #   ...
@@ -165,7 +164,7 @@ for row in sheet.rows:
         # This tree is on the right edge => no right neighbours
         no_right = True
 
-    if this_plot[1] == 3 and this_pos[1] == 10:
+    if this_plot[1] == 6 and this_pos[1] == 10:
         # This tree is one the bottom edge => no below neighbours
         no_below = True
     
@@ -295,7 +294,7 @@ for row in sheet.rows:
     neighbours_id = [None] * 8
     for i in range(0, 8):
         if not neighbours_plot[i] == None:
-            neighbours_id[i] = (current_tree.site + str(neighbours_plot[i][0]) + str(neighbours_plot[i][1]) +
+            neighbours_id[i] = (current_tree.site[0] + str(neighbours_plot[i][0]) + str(neighbours_plot[i][1]) +
                                 str(neighbours_pos[i][0]) + str(neighbours_pos[i][1]).rjust(2, "0"))
     
     # Update neighbours lists of this tree and neighbouring trees

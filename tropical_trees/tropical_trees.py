@@ -11,6 +11,7 @@
 
 from cProfile import label
 from itertools import pairwise
+from turtle import update
 import openpyxl as op
 import time as t
 
@@ -21,6 +22,7 @@ SAMPSPERTREE = 12      # How many samples are taken for each tree
 LABELCOL = 15          # Column 'O', Label
 HEIGHTCOL = 27         # Column 'AA', Hfill
 DEADCOL = 42           # Column 'AP', Dead. Coincidence that his column is the answer to everything?
+LASTROW = 64803        # Last row of the excel sheet
 
 INPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\treedata.xlsm"     # Input file path
 OUTPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\output.xlsx"  # Output file path
@@ -58,6 +60,7 @@ class tree:
         self.height = None
         self.dead = None
         self.neighbours = [None] * 8
+        self.avg_height = [] # List of neightbouring trees heights
     
     def update(self, label) -> None:
         self.label = label
@@ -66,7 +69,41 @@ class tree:
         self.plot = label[2:4]
         self.pos = label[4:7]
         self.species = label[8:]
+    
+    def addAvgHeight(self, height) -> None:
+        self.avg_height.append(height)
+        
+    def getAvgHeight(self) -> float:
+        if len(self.avg_height):
+            return sum(self.avg_height) / len(self.avg_height)
+        else:
+            return 0
 
+### Help function for updating the neightbours lists ###
+def updateNeighbours(current_tree, neigh_ids) -> None:
+    # Update neighbours lists of this tree and neighbouring trees
+        for i in range(0,8):
+            neigh_id = neigh_ids[i]
+            if neigh_id == None:
+                continue
+            
+            neigh_hash = hash(neigh_id)
+            # Create new trees from neighbours if they don't exists
+            if not neigh_hash in trees.keys():
+                trees[neigh_hash] = tree(neigh_id)
+                
+            # Add the current tree as neighbour to neighbouring trees neighbours lists
+            # TODO: this line puts the current tree as the neighbour on the wrong index
+            trees[neigh_hash].neighbours[7 - i] = current_tree.id
+            
+            # Add current tree height to neightbours average height
+            if isinstance(current_tree.height, int) or isinstance(current_tree.height, float):
+                trees[neigh_hash].addAvgHeight(current_tree.height)
+            
+            
+            # Add the neighbours to the current tree neighbours list
+            if trees[tree_hash].neighbours[i] == None:
+                trees[tree_hash].neighbours[i] = neigh_id
 
 ###### Main script ######
 datawb = op.load_workbook(filename=INPUTFILEPATH, read_only=True, data_only=True)
@@ -77,9 +114,12 @@ last_label = None # To keep track of which tree is worked on
 tree_is_dead = 0
 header_row = 0
 last_height = 0.0
+first_run = True
     
 # Iterate the individual trees and extract the data until no data rows remain
 for row in sheet.rows:
+    nr_of_rows += 1
+    
     # Skip the first 5 rows, as they are just headers
     if header_row < STARTINGROW:
         header_row += 1
@@ -87,7 +127,13 @@ for row in sheet.rows:
     
     # Start parsing the label into site, plot, and species
     tree_label = row[LABELCOL - 1].value
-    if tree_label != last_label: # We're on a new tree.
+    # TODO: the whole avg height thing does not work
+    if first_run:
+        last_label = tree_label
+        pass
+    elif tree_label != last_label or nr_of_rows == LASTROW: # We're on a new tree.
+        current_hash = hash(current_tree.label[0] + current_tree.label[2:7])
+        updateNeighbours(trees[current_hash], neighbours_id) # Last thing that is done before staring the computation on the new tree is to update all neighbours of the tree we were on
         last_label = tree_label
         last_height = 0
     
@@ -95,7 +141,6 @@ for row in sheet.rows:
     # or update already existing (created from earlier trees as neighbours)
     # Only the plot and position of the tree are hashed
     # as these are then used for neighbour lookup. Species can't be "calculated" in advanced.
-    # TODO: Don't hash the 2nd character, as that one can't be calculated later
     current_tree = tree(tree_label)
     tree_hash = hash(current_tree.label[0] + current_tree.label[2:7])
     if tree_hash not in trees.keys():
@@ -103,14 +148,13 @@ for row in sheet.rows:
     else:
         trees[tree_hash].update(tree_label)
         
-    # Check the height
+    # Read the height of the current tree
     if isinstance(row[HEIGHTCOL - 1].value, int) or isinstance(row[HEIGHTCOL - 1].value, float):
         if row[HEIGHTCOL -1].value > last_height:
             last_height = row[HEIGHTCOL - 1].value
             trees[tree_hash].height = last_height
     
-    # Check the death status from the last measurement before the next individual
-    # because some trees recover from death.
+    # Check the death status of the current tree
     if row[DEADCOL - 1].value:
         trees[tree_hash].dead = 1
     
@@ -283,45 +327,20 @@ for row in sheet.rows:
         neighbours_plot[6] = mid_below_neigh_plot
         neighbours_pos[6] = mid_below_neigh_pos
             
-    # test comments
-    #print(f"{no_left} {no_above} {no_right} {no_below}")
-    #print(f"this:       {this_plot} {this_pos}")
-    #print(f"neigh plot: {neighbours_plot}")
-    #print(f"neigh pos: {neighbours_pos}")
-    
     # Build the neightbours ids.
     # Site is always the same as the current tree.
     neighbours_id = [None] * 8
     for i in range(0, 8):
-        if not neighbours_plot[i] == None:
+        if neighbours_plot[i] != None:
             neighbours_id[i] = (current_tree.site[0] + str(neighbours_plot[i][0]) + str(neighbours_plot[i][1]) +
                                 str(neighbours_pos[i][0]) + str(neighbours_pos[i][1]).rjust(2, "0"))
     
-    # Update neighbours lists of this tree and neighbouring trees
-    for i in range(0,8):
-        neigh_id = neighbours_id[i]
-        if neigh_id == None:
-            continue
-        
-        neigh_hash = hash(neigh_id)
-        # Create new trees from neighbours if they don't exists
-        if not neigh_hash in trees.keys():
-            trees[neigh_hash] = tree(neigh_id)
-            
-        # Add the current tree as neighbour to neighbouring trees neighbours lists
-        trees[neigh_hash].neighbours[i] = current_tree.id
-        
-        # Add the neighbours to the current tree neighbours list
-        if trees[tree_hash].neighbours[i] == None:
-            trees[tree_hash].neighbours[i] = neigh_id
-        
-    
     #print(f"{trees[tree_hash].site} {trees[tree_hash].plot} {trees[tree_hash].pos} {trees[tree_hash].species} {trees[tree_hash].dead} {trees[tree_hash].height}")
     # Progress update
-    # TODO change this to nr of rows and then divide by 12 for nr of trees
-    nr_of_rows += 1
     if nr_of_rows%PROGRESSMOD == 0:
-        print(f"{nr_of_rows / SAMPSPERTREE} trees extracted...")
+        print(f"{round(nr_of_rows / SAMPSPERTREE)} trees extracted...")
+        
+    first_run = False
     
     
     
@@ -352,9 +371,9 @@ for k, v in trees.items():
     wb.cell(row=OUTSTARTROW + r, column=OUTSPECIESCOL, value=v.species)
     wb.cell(row=OUTSTARTROW + r, column=OUTDEADCOL, value=v.dead)
     wb.cell(row=OUTSTARTROW + r, column=OUTHEIGHTCOL, value=v.height)
-    wb.cell(row=OUTSTARTROW + r, column=OUTNAVGHEIGHTCOL, value="TODO")
+    wb.cell(row=OUTSTARTROW + r, column=OUTNAVGHEIGHTCOL, value=v.getAvgHeight())
     
-    # Add neighbours heights to their right columns
+    # Add neighbours to their right columns
     nc = 0
     for n in v.neighbours:
         wb.cell(row=OUTSTARTROW + r, column=OUTNEIGHTSTARTCOL + nc, value=n)
@@ -368,4 +387,4 @@ for k, v in trees.items():
 
 outputwb.save(filename=OUTPUTFILEPATH)
 
-print(f"Done. Total of {nr_of_rows / SAMPSPERTREE} trees were extracted. Phew..!")
+print(f"Done. Total of {round(nr_of_rows / SAMPSPERTREE)} trees were extracted. Phew..!")

@@ -13,7 +13,7 @@ class SwitchFrame():
         self.label = tk.Label(self.frame, text=label)
         self.label.grid(row=0, column=0, padx=5, pady=5)
         
-    def set_status(self,status):
+    def set_status(self, status):
         self.status = status
         
         # Change color based on status

@@ -6,6 +6,12 @@
 #
 # By Marcus Dahlström 2023
 
+# TODO
+# - write serial interface
+# - string decoder to update interface. Kinda works now, need to add all states
+# - v1.0 layout
+# - get tank level UI to work. could make it prettier with which parts of the tank is on?
+
 from MainWindow import *
 
 main = MainWindow()

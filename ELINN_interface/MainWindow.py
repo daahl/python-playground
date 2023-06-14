@@ -8,6 +8,7 @@ import TankFrame as tf
 
 class MainWindow:
     def __init__(self):
+        self.sfStatus = True
         self.debug = False
         self.root = tk.Tk()
         self.root.title("Water tank - Control panel")
@@ -36,15 +37,26 @@ class MainWindow:
         self.sf2.frame.grid(row=0, column=1, padx=20, pady=20)
         
         ################## Create tank window
-        self.tank_window = tf.TankFrame(self.root, 200, 400, False)
+        self.tank_window = tf.TankFrame(self.root, width=200, height=400, debug_mode=False)
         self.tank_window.frame.grid(row=1, column=1)
         
         ################## Test buttons
-        self.bton = tk.Button(self.root, text="On", command=lambda:self.sf1.set_status(True))
+        self.bton = tk.Button(self.root, text="On", command=lambda:self.update())
         self.bton.grid(row=3, column=0, sticky="we")
-        self.btoff = tk.Button(self.root, text="Off", command=lambda:self.sf1.set_status(False))
+        self.btoff = tk.Button(self.root, text="Tank level +", command=lambda:self.tank_window.set_status(+10))
         self.btoff.grid(row=4, column=0, sticky="we")
+        self.btoff = tk.Button(self.root, text="Tank level -", command=lambda:self.tank_window.set_status(-10))
+        self.btoff.grid(row=5, column=0, sticky="we")
+        
+        ################## Add all state objects to be updated to a dict
+        self.objs = {"sf1":self.sf1, "sf2":self.sf2}
         
         
     def start(self):
         self.root.mainloop()
+        
+    def update(self):
+        statusString = "sf1:1,sf2:1"
+        
+        for s in statusString.split(","):
+            self.objs[s.split(":")[0]].set_status(s.split(":")[1])

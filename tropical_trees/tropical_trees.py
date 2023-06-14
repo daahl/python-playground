@@ -24,8 +24,11 @@ HEIGHTCOL = 27         # Column 'AA', Hfill
 DEADCOL = 42           # Column 'AP', Dead. Coincidence that his column is the answer to everything?
 LASTROW = 64803        # Last row of the excel sheet
 
-INPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\treedata.xlsm"     # Input file path
-OUTPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\code\\output.xlsx"  # Output file path
+ # Input file path
+INPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\Code\\python-playground\\tropical_trees\\Treedata\\treedata.xlsm"
+# Output file path
+OUTPUTFILEPATH = "C:\\Users\\Marcus\\Documents\\Code\\python-playground\\tropical_trees\\Treedata\\output.xlsx"
+  
 PROGRESSMOD = 50      # After how many trees should a progress update be printed?
 
 # Column formatting for the output file
@@ -99,7 +102,6 @@ def updateNeighbours(current_tree, neigh_ids) -> None:
             # Add current tree height to neightbours average height
             if isinstance(current_tree.height, int) or isinstance(current_tree.height, float):
                 trees[neigh_hash].addAvgHeight(current_tree.height)
-            
             
             # Add the neighbours to the current tree neighbours list
             if trees[tree_hash].neighbours[i] == None:
